@@ -2,43 +2,45 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"./applemusic"
-	"./music"
+	"./spotify"
 )
 
 func main() {
-	linkHandler := make(map[string]music.LinkHandler)
-	linkHandler["applemusic"] = applemusic.LinkHandler{}
+	appleMusicLinkHandler := applemusic.LinkHandler{}
+	spotifyMusicLinkHandler := spotify.LinkHandler{}
 
-	response, err := linkHandler["applemusic"].GetAlbum("617154241")
+	response, err := spotifyMusicLinkHandler.GetArtist("3AA28KZvwAUcZuOKwyblJQ")
 	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println(response.MediaType)
-		fmt.Println(response.Artist)
-		fmt.Println(response.Album)
-		fmt.Println(response.Song)
+		panic(err)
 	}
 
-	response, err = linkHandler["applemusic"].GetArtist("5468295")
+	link, err := appleMusicLinkHandler.Search(response)
 	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println(response.MediaType)
-		fmt.Println(response.Artist)
-		fmt.Println(response.Album)
-		fmt.Println(response.Song)
+		panic(err)
+	}
+	fmt.Println(link)
+
+	response, err = spotifyMusicLinkHandler.GetAlbum("1amYhlukNF8WdaQC3gKkgL")
+	if err != nil {
+		panic(err)
 	}
 
-	response, err = linkHandler["applemusic"].GetSong("1156443304")
+	link, err = appleMusicLinkHandler.Search(response)
 	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println(response.MediaType)
-		fmt.Println(response.Artist)
-		fmt.Println(response.Album)
-		fmt.Println(response.Song)
+		panic(err)
 	}
+	fmt.Println(link)
+
+	response, err = spotifyMusicLinkHandler.GetSong("7jYUaoOfdcYgUvkK8NnFfx")
+	if err != nil {
+		panic(err)
+	}
+
+	link, err = appleMusicLinkHandler.Search(response)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(link)
 }
