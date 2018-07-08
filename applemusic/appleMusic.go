@@ -106,6 +106,9 @@ func (linkHandler LinkHandler) GetArtist(id string) (music.Response, error) {
 		return musicResponse, err
 	}
 
+	musicResponse.MediaType = "artist"
+	musicResponse.Artist = appleMusicResponse.Data[0].Attributes.Name
+
 	return musicResponse, nil
 }
 

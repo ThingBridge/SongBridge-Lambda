@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"../music"
 	"github.com/go-redis/redis"
@@ -28,7 +29,40 @@ type LinkHandler struct {
 }
 
 func (linkHandler LinkHandler) Search(response music.Response) (string, error) {
-	return "", nil
+	types := linkHandler.mapMediaType(response.MediaType)
+	searchTerm := linkHandler.getSearchTerm(response)
+
+	accessToken, err := getAccessToken()
+	if err != nil {
+		return "", err
+	}
+
+	request, err := http.NewRequest("GET", "https://api.spotify.com/v1/search?limit=1&q="+searchTerm+"&type="+types, nil)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := http.Client{}
+	httpResponse, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer httpResponse.Body.Close()
+
+	data, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
+		return "", err
+	}
+
+	searchResponse := SearchResponse{}
+	err = json.Unmarshal(data, &searchResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return linkHandler.getLink(response, searchResponse), nil
 }
 
 // GetArtist Fetches an album with the spotify identifier
@@ -152,4 +186,37 @@ func (linkHandler LinkHandler) GetSong(id string) (music.Response, error) {
 	musicResponse.Song = spotifyReponse.Name
 
 	return musicResponse, nil
+}
+
+func (linkHandler LinkHandler) mapMediaType(mediaType string) string {
+	switch mediaType {
+	case "artist":
+		return "artist"
+	case "album":
+		return "album"
+	default:
+		return "track"
+	}
+}
+
+func (linkHandler LinkHandler) getSearchTerm(response music.Response) string {
+	switch response.MediaType {
+	case "artist":
+		return strings.Replace(response.Artist, " ", "+", -1)
+	case "album":
+		return strings.Replace(response.Artist+" "+response.Album, " ", "+", -1)
+	default:
+		return strings.Replace(response.Artist+" "+response.Album+" "+response.Song, " ", "+", -1)
+	}
+}
+
+func (linkHandler LinkHandler) getLink(response music.Response, searchResponse SearchResponse) string {
+	switch response.MediaType {
+	case "artist":
+		return searchResponse.Artists.Items[0].ExternalUrls.Spotify
+	case "album":
+		return searchResponse.Albums.Items[0].ExternalUrls.Spotify
+	default:
+		return searchResponse.Tracks.Items[0].ExternalUrls.Spotify
+	}
 }
