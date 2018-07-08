@@ -19,6 +19,17 @@ type SongBridgeLink struct {
 	Link string `json:"link"`
 }
 
+func getInformations(linkHandler music.LinkHandler, mediaType string, id string) (music.Information, error) {
+	switch mediaType {
+	case "artist":
+		return linkHandler.GetArtist(id)
+	case "album":
+		return linkHandler.GetAlbum(id)
+	default:
+		return linkHandler.GetSong(id)
+	}
+}
+
 func handleBridge(responseWriter http.ResponseWriter, request *http.Request) {
 	source := request.URL.Query().Get("source")
 	if source == "" {
@@ -39,143 +50,38 @@ func handleBridge(responseWriter http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	var linkHandler music.LinkHandler = applemusic.LinkHandler{}
-	var targetLinkHandler music.LinkHandler = spotify.LinkHandler{}
-	if source == "spotify" {
-		linkHandler = spotify.LinkHandler{}
-		targetLinkHandler = applemusic.LinkHandler{}
+	linkHandler := make(map[string]music.LinkHandler)
+	linkHandler["appleMusic"] = applemusic.LinkHandler{}
+	linkHandler["spotify"] = spotify.LinkHandler{}
+
+	informations, err := getInformations(linkHandler[source], mediaType, id)
+	if err != nil {
+		responseWriter.WriteHeader(500)
+		return
+	}
+	songBrideResponse := SongBridgeResponse{}
+	for key, value := range linkHandler {
+		link, err := value.Search(informations)
+		if err != nil {
+			continue
+		}
+		songBrideResponse.Links = append(songBrideResponse.Links, SongBridgeLink{
+			Name: key,
+			Link: link,
+		})
 	}
 
-	if mediaType == "artist" {
-		response, err := linkHandler.GetArtist(id)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-		link, err := targetLinkHandler.Search(response)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-		songBrideResponse := SongBridgeResponse{
-			Links: []SongBridgeLink{
-				SongBridgeLink{
-					Name: "Spotify",
-					Link: link,
-				},
-			},
-		}
-		data, err := json.Marshal(songBrideResponse)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-
-		responseWriter.Header().Set("Content-Type", "application/json")
-		responseWriter.Write(data)
-	} else if mediaType == "album" {
-		response, err := linkHandler.GetAlbum(id)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-		link, err := targetLinkHandler.Search(response)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-		songBrideResponse := SongBridgeResponse{
-			Links: []SongBridgeLink{
-				SongBridgeLink{
-					Name: "Spotify",
-					Link: link,
-				},
-			},
-		}
-		data, err := json.Marshal(songBrideResponse)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-
-		responseWriter.Header().Set("Content-Type", "application/json")
-		responseWriter.Write(data)
-	} else {
-		response, err := linkHandler.GetSong(id)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-		link, err := targetLinkHandler.Search(response)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-		songBrideResponse := SongBridgeResponse{
-			Links: []SongBridgeLink{
-				SongBridgeLink{
-					Name: "Spotify",
-					Link: link,
-				},
-			},
-		}
-		data, err := json.Marshal(songBrideResponse)
-		if err != nil {
-			responseWriter.WriteHeader(500)
-			return
-		}
-
-		responseWriter.Header().Set("Content-Type", "application/json")
-		responseWriter.Write(data)
+	data, err := json.Marshal(songBrideResponse)
+	if err != nil {
+		responseWriter.WriteHeader(500)
+		return
 	}
 
+	responseWriter.Header().Set("Content-Type", "application/json")
+	responseWriter.Write(data)
 }
 
 func main() {
 	http.HandleFunc("/bridge", handleBridge)
 	log.Fatal(http.ListenAndServe(":8080", nil))
-
-	// source := flag.String("source", "", "Sets the source of the id")
-	// id := flag.String("id", "", "The id too lookup in other sevices")
-	// mediaType := flag.String("mediaType", "", "Kind of media")
-	// flag.Parse()
-
-	// var linkHandler music.LinkHandler = applemusic.LinkHandler{}
-	// var targetLinkHandler music.LinkHandler = spotify.LinkHandler{}
-	// if *source == "spotify" {
-	// 	linkHandler = spotify.LinkHandler{}
-	// 	targetLinkHandler = applemusic.LinkHandler{}
-	// }
-
-	// if *mediaType == "artist" {
-	// 	response, err := linkHandler.GetArtist(*id)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	link, err := targetLinkHandler.Search(response)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	fmt.Println(link)
-	// } else if *mediaType == "album" {
-	// 	response, err := linkHandler.GetAlbum(*id)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	link, err := targetLinkHandler.Search(response)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	fmt.Println(link)
-	// } else {
-	// 	response, err := linkHandler.GetSong(*id)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	link, err := targetLinkHandler.Search(response)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	fmt.Println(link)
-	// }
 }

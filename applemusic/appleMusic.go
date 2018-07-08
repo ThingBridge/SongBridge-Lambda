@@ -72,9 +72,14 @@ func (linkHandler LinkHandler) GetAlbum(id string) (music.Information, error) {
 		return musicResponse, err
 	}
 
-	musicResponse.MediaType = "album"
-	musicResponse.Artist = appleMusicResponse.Data[0].Attributes.ArtistName
-	musicResponse.Album = appleMusicResponse.Data[0].Attributes.Name
+	if len(appleMusicResponse.Data) > 0 {
+		musicResponse.MediaType = "album"
+		musicResponse.Artist = appleMusicResponse.Data[0].Attributes.ArtistName
+		musicResponse.Album = appleMusicResponse.Data[0].Attributes.Name
+		return musicResponse, nil
+	}
+
+	musicResponse.MediaType = ""
 	return musicResponse, nil
 }
 
@@ -106,9 +111,13 @@ func (linkHandler LinkHandler) GetArtist(id string) (music.Information, error) {
 		return musicResponse, err
 	}
 
-	musicResponse.MediaType = "artist"
-	musicResponse.Artist = appleMusicResponse.Data[0].Attributes.Name
+	if len(appleMusicResponse.Data) > 0 {
+		musicResponse.MediaType = "artist"
+		musicResponse.Artist = appleMusicResponse.Data[0].Attributes.Name
+		return musicResponse, nil
+	}
 
+	musicResponse.MediaType = ""
 	return musicResponse, nil
 }
 
@@ -140,10 +149,15 @@ func (linkHandler LinkHandler) GetSong(id string) (music.Information, error) {
 		return musicResponse, err
 	}
 
-	musicResponse.MediaType = "song"
-	musicResponse.Artist = appleMusicResponse.Data[0].Attributes.ArtistName
-	musicResponse.Album = appleMusicResponse.Data[0].Attributes.AlbumName
-	musicResponse.Song = appleMusicResponse.Data[0].Attributes.Name
+	if len(appleMusicResponse.Data) > 0 {
+		musicResponse.MediaType = "song"
+		musicResponse.Artist = appleMusicResponse.Data[0].Attributes.ArtistName
+		musicResponse.Album = appleMusicResponse.Data[0].Attributes.AlbumName
+		musicResponse.Song = appleMusicResponse.Data[0].Attributes.Name
+		return musicResponse, nil
+	}
+
+	musicResponse.MediaType = ""
 	return musicResponse, nil
 }
 
@@ -172,10 +186,19 @@ func (linkHandler LinkHandler) getSearchTerm(information music.Information) stri
 func (linkHandler LinkHandler) getLink(response music.Information, searchResponse SearchResponse) string {
 	switch response.MediaType {
 	case "artist":
+		if len(searchResponse.Results.Artists.Data) > 0 {
+			return ""
+		}
 		return searchResponse.Results.Artists.Data[0].Attributes.URL
 	case "album":
+		if len(searchResponse.Results.Albums.Data) > 0 {
+			return ""
+		}
 		return searchResponse.Results.Albums.Data[0].Attributes.URL
 	default:
+		if len(searchResponse.Results.Songs.Data) > 0 {
+			return ""
+		}
 		return searchResponse.Results.Songs.Data[0].Attributes.URL
 	}
 }
