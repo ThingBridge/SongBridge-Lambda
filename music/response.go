@@ -1,7 +1,7 @@
 package music
 
-// Response Represents music informations
-type Response struct {
+// Information Represents music informations
+type Information struct {
 	MediaType string
 
 	Artist string

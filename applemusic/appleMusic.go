@@ -13,9 +13,9 @@ import (
 type LinkHandler struct {
 }
 
-func (linkHandler LinkHandler) Search(response music.Response) (string, error) {
-	types := linkHandler.mapMediaType(response.MediaType)
-	searchTerm := linkHandler.getSearchTerm(response)
+func (linkHandler LinkHandler) Search(information music.Information) (string, error) {
+	types := linkHandler.mapMediaType(information.MediaType)
+	searchTerm := linkHandler.getSearchTerm(information)
 	request, err := http.NewRequest("GET", "https://api.music.apple.com/v1/catalog/de/search?term="+searchTerm+"&types="+types, nil)
 	if err != nil {
 		return "", err
@@ -41,12 +41,12 @@ func (linkHandler LinkHandler) Search(response music.Response) (string, error) {
 		return "", err
 	}
 
-	return linkHandler.getLink(response, searchResponse), nil
+	return linkHandler.getLink(information, searchResponse), nil
 }
 
 // GetAlbum Fetches an album with the apple music identifier
-func (linkHandler LinkHandler) GetAlbum(id string) (music.Response, error) {
-	musicResponse := music.Response{}
+func (linkHandler LinkHandler) GetAlbum(id string) (music.Information, error) {
+	musicResponse := music.Information{}
 	appleMusicResponse := AlbumResponse{}
 	request, err := http.NewRequest("GET", "https://api.music.apple.com/v1/catalog/de/albums/"+id, nil)
 	request.Header.Set("Authorization", "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ijg5N0E1RkE4WkEifQ.eyJpYXQiOjE1MzAxMDUwNjQsImV4cCI6MTU0NTY1NzA2NCwiaXNzIjoiWkY5OUdFOVI1VyJ9.JRN6e__NCO8Yjhj2ynJV20RbPOuNDo9WLcR_lYg1B348ea4BembEqraV53MF-c14jxKYk_0pRjjJlhmF3lkmdw")
@@ -79,8 +79,8 @@ func (linkHandler LinkHandler) GetAlbum(id string) (music.Response, error) {
 }
 
 // GetArtist Fetches informations for an apple music artist
-func (linkHandler LinkHandler) GetArtist(id string) (music.Response, error) {
-	musicResponse := music.Response{}
+func (linkHandler LinkHandler) GetArtist(id string) (music.Information, error) {
+	musicResponse := music.Information{}
 	appleMusicResponse := ArtistResponse{}
 	request, err := http.NewRequest("GET", "https://api.music.apple.com/v1/catalog/de/artists/"+id, nil)
 	request.Header.Set("Authorization", "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ijg5N0E1RkE4WkEifQ.eyJpYXQiOjE1MzAxMDUwNjQsImV4cCI6MTU0NTY1NzA2NCwiaXNzIjoiWkY5OUdFOVI1VyJ9.JRN6e__NCO8Yjhj2ynJV20RbPOuNDo9WLcR_lYg1B348ea4BembEqraV53MF-c14jxKYk_0pRjjJlhmF3lkmdw")
@@ -113,8 +113,8 @@ func (linkHandler LinkHandler) GetArtist(id string) (music.Response, error) {
 }
 
 // GetSong Fetches informations for a apple music song
-func (linkHandler LinkHandler) GetSong(id string) (music.Response, error) {
-	musicResponse := music.Response{}
+func (linkHandler LinkHandler) GetSong(id string) (music.Information, error) {
+	musicResponse := music.Information{}
 	appleMusicResponse := SongResponse{}
 	request, err := http.NewRequest("GET", "https://api.music.apple.com/v1/catalog/de/songs/"+id, nil)
 	request.Header.Set("Authorization", "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ijg5N0E1RkE4WkEifQ.eyJpYXQiOjE1MzAxMDUwNjQsImV4cCI6MTU0NTY1NzA2NCwiaXNzIjoiWkY5OUdFOVI1VyJ9.JRN6e__NCO8Yjhj2ynJV20RbPOuNDo9WLcR_lYg1B348ea4BembEqraV53MF-c14jxKYk_0pRjjJlhmF3lkmdw")
@@ -158,18 +158,18 @@ func (linkHandler LinkHandler) mapMediaType(mediaType string) string {
 	}
 }
 
-func (linkHandler LinkHandler) getSearchTerm(response music.Response) string {
-	switch response.MediaType {
+func (linkHandler LinkHandler) getSearchTerm(information music.Information) string {
+	switch information.MediaType {
 	case "artist":
-		return strings.Replace(response.Artist, " ", "+", -1)
+		return strings.Replace(information.Artist, " ", "+", -1)
 	case "album":
-		return strings.Replace(response.Artist+" "+response.Album, " ", "+", -1)
+		return strings.Replace(information.Artist+" "+information.Album, " ", "+", -1)
 	default:
-		return strings.Replace(response.Artist+" "+response.Album+" "+response.Song, " ", "+", -1)
+		return strings.Replace(information.Artist+" "+information.Album+" "+information.Song, " ", "+", -1)
 	}
 }
 
-func (linkHandler LinkHandler) getLink(response music.Response, searchResponse SearchResponse) string {
+func (linkHandler LinkHandler) getLink(response music.Information, searchResponse SearchResponse) string {
 	switch response.MediaType {
 	case "artist":
 		return searchResponse.Results.Artists.Data[0].Attributes.URL

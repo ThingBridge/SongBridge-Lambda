@@ -28,9 +28,9 @@ func getAccessToken() (string, error) {
 type LinkHandler struct {
 }
 
-func (linkHandler LinkHandler) Search(response music.Response) (string, error) {
-	types := linkHandler.mapMediaType(response.MediaType)
-	searchTerm := linkHandler.getSearchTerm(response)
+func (linkHandler LinkHandler) Search(information music.Information) (string, error) {
+	types := linkHandler.mapMediaType(information.MediaType)
+	searchTerm := linkHandler.getSearchTerm(information)
 
 	accessToken, err := getAccessToken()
 	if err != nil {
@@ -62,12 +62,12 @@ func (linkHandler LinkHandler) Search(response music.Response) (string, error) {
 		return "", err
 	}
 
-	return linkHandler.getLink(response, searchResponse), nil
+	return linkHandler.getLink(information, searchResponse), nil
 }
 
 // GetArtist Fetches an album with the spotify identifier
-func (linkHandler LinkHandler) GetArtist(id string) (music.Response, error) {
-	musicResponse := music.Response{}
+func (linkHandler LinkHandler) GetArtist(id string) (music.Information, error) {
+	musicResponse := music.Information{}
 	spotifyReponse := ArtistResponse{}
 
 	accessToken, err := getAccessToken()
@@ -106,8 +106,8 @@ func (linkHandler LinkHandler) GetArtist(id string) (music.Response, error) {
 }
 
 // GetAlbum Fetches an album with the spotify identifier
-func (linkHandler LinkHandler) GetAlbum(id string) (music.Response, error) {
-	musicResponse := music.Response{}
+func (linkHandler LinkHandler) GetAlbum(id string) (music.Information, error) {
+	musicResponse := music.Information{}
 	spotifyReponse := AlbumReponse{}
 
 	accessToken, err := getAccessToken()
@@ -147,8 +147,8 @@ func (linkHandler LinkHandler) GetAlbum(id string) (music.Response, error) {
 }
 
 // GetSong Fetches informations for a spotify song
-func (linkHandler LinkHandler) GetSong(id string) (music.Response, error) {
-	musicResponse := music.Response{}
+func (linkHandler LinkHandler) GetSong(id string) (music.Information, error) {
+	musicResponse := music.Information{}
 	spotifyReponse := TrackResponse{}
 
 	accessToken, err := getAccessToken()
@@ -199,7 +199,7 @@ func (linkHandler LinkHandler) mapMediaType(mediaType string) string {
 	}
 }
 
-func (linkHandler LinkHandler) getSearchTerm(response music.Response) string {
+func (linkHandler LinkHandler) getSearchTerm(response music.Information) string {
 	switch response.MediaType {
 	case "artist":
 		return strings.Replace(response.Artist, " ", "+", -1)
@@ -210,7 +210,7 @@ func (linkHandler LinkHandler) getSearchTerm(response music.Response) string {
 	}
 }
 
-func (linkHandler LinkHandler) getLink(response music.Response, searchResponse SearchResponse) string {
+func (linkHandler LinkHandler) getLink(response music.Information, searchResponse SearchResponse) string {
 	switch response.MediaType {
 	case "artist":
 		return searchResponse.Artists.Items[0].ExternalUrls.Spotify

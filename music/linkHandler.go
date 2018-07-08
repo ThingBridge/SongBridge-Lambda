@@ -2,9 +2,9 @@ package music
 
 // LinkHandler Represents a handler for request againt a streaming service
 type LinkHandler interface {
-	Search(response Response) (string, error)
+	Search(information Information) (string, error)
 
-	GetArtist(id string) (Response, error)
-	GetAlbum(id string) (Response, error)
-	GetSong(id string) (Response, error)
+	GetArtist(id string) (Information, error)
+	GetAlbum(id string) (Information, error)
+	GetSong(id string) (Information, error)
 }
