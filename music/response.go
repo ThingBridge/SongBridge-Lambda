@@ -7,4 +7,6 @@ type Information struct {
 	Artist string
 	Album  string
 	Song   string
+
+	Image string
 }

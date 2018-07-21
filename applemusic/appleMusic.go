@@ -3,6 +3,7 @@ package applemusic
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 
@@ -16,8 +17,10 @@ type LinkHandler struct {
 func (linkHandler LinkHandler) Search(information music.Information) (string, error) {
 	types := linkHandler.mapMediaType(information.MediaType)
 	searchTerm := linkHandler.getSearchTerm(information)
+	log.Print("Searching for " + types + " " + searchTerm)
 	request, err := http.NewRequest("GET", "https://api.music.apple.com/v1/catalog/de/search?term="+searchTerm+"&types="+types, nil)
 	if err != nil {
+		log.Print(err)
 		return "", err
 	}
 	request.Header.Set("Authorization", "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ijg5N0E1RkE4WkEifQ.eyJpYXQiOjE1MzAxMDUwNjQsImV4cCI6MTU0NTY1NzA2NCwiaXNzIjoiWkY5OUdFOVI1VyJ9.JRN6e__NCO8Yjhj2ynJV20RbPOuNDo9WLcR_lYg1B348ea4BembEqraV53MF-c14jxKYk_0pRjjJlhmF3lkmdw")
@@ -25,19 +28,23 @@ func (linkHandler LinkHandler) Search(information music.Information) (string, er
 	client := http.Client{}
 	httpResponse, err := client.Do(request)
 	if err != nil {
+		log.Print(err)
 		return "", err
 	}
 
 	defer httpResponse.Body.Close()
 
 	data, err := ioutil.ReadAll(httpResponse.Body)
+	log.Print(string(data))
 	if err != nil {
+		log.Print(err)
 		return "", err
 	}
 
 	searchResponse := SearchResponse{}
 	err = json.Unmarshal(data, &searchResponse)
 	if err != nil {
+		log.Print(err)
 		return "", err
 	}
 
@@ -76,6 +83,7 @@ func (linkHandler LinkHandler) GetAlbum(id string) (music.Information, error) {
 		musicResponse.MediaType = "album"
 		musicResponse.Artist = appleMusicResponse.Data[0].Attributes.ArtistName
 		musicResponse.Album = appleMusicResponse.Data[0].Attributes.Name
+		musicResponse.Image = appleMusicResponse.Data[0].Attributes.Artwork.URL
 		return musicResponse, nil
 	}
 
@@ -154,6 +162,7 @@ func (linkHandler LinkHandler) GetSong(id string) (music.Information, error) {
 		musicResponse.Artist = appleMusicResponse.Data[0].Attributes.ArtistName
 		musicResponse.Album = appleMusicResponse.Data[0].Attributes.AlbumName
 		musicResponse.Song = appleMusicResponse.Data[0].Attributes.Name
+		musicResponse.Image = appleMusicResponse.Data[0].Attributes.Artwork.URL
 		return musicResponse, nil
 	}
 
@@ -184,19 +193,26 @@ func (linkHandler LinkHandler) getSearchTerm(information music.Information) stri
 }
 
 func (linkHandler LinkHandler) getLink(response music.Information, searchResponse SearchResponse) string {
+	log.Print(searchResponse)
+	log.Print(searchResponse.Results)
+	log.Print(searchResponse.Results.Artists)
+	log.Print(searchResponse.Results.Artists.Data)
 	switch response.MediaType {
 	case "artist":
-		if len(searchResponse.Results.Artists.Data) > 0 {
+		if len(searchResponse.Results.Artists.Data) <= 0 {
+			log.Print("No results found for artist")
 			return ""
 		}
 		return searchResponse.Results.Artists.Data[0].Attributes.URL
 	case "album":
-		if len(searchResponse.Results.Albums.Data) > 0 {
+		if len(searchResponse.Results.Albums.Data) <= 0 {
+			log.Print("No results found for album")
 			return ""
 		}
 		return searchResponse.Results.Albums.Data[0].Attributes.URL
 	default:
-		if len(searchResponse.Results.Songs.Data) > 0 {
+		if len(searchResponse.Results.Songs.Data) <= 0 {
+			log.Print("No results found for song")
 			return ""
 		}
 		return searchResponse.Results.Songs.Data[0].Attributes.URL

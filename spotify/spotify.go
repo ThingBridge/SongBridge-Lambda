@@ -2,26 +2,46 @@ package spotify
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"../music"
-	"github.com/go-redis/redis"
 )
 
 func getAccessToken() (string, error) {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
+	data := url.Values{}
+	data.Set("grant_type", "client_credentials")
 
-	accessToken, err := client.Get("spotify_access_token").Result()
+	request, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", strings.NewReader(data.Encode()))
 	if err != nil {
-		return "", nil
+		return "", err
 	}
-	return accessToken, nil
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("Authorization", "Basic ZGM4N2QyNWE2MzVkNGQ1Njg0NGFhYWFiYTQ2MjA2NDA6YTM3Nzk2ZDk0MWQyNDhjZGJlZjRkODQ2MWI1YTA3ZWU=")
+
+	client := http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+
+	bodyBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return "", err
+	}
+
+	tokenResponse := TokenResponse{}
+	err = json.Unmarshal(bodyBytes, &tokenResponse)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenResponse.AccessToken, nil
 }
 
 // LinkHandler Represents a handler for requests against apple music
@@ -62,7 +82,11 @@ func (linkHandler LinkHandler) Search(information music.Information) (string, er
 		return "", err
 	}
 
-	return linkHandler.getLink(information, searchResponse), nil
+	link, err := linkHandler.getLink(information, searchResponse)
+	if err != nil {
+		return "", err
+	}
+	return link, nil
 }
 
 // GetArtist Fetches an album with the spotify identifier
@@ -101,6 +125,7 @@ func (linkHandler LinkHandler) GetArtist(id string) (music.Information, error) {
 
 	musicResponse.MediaType = "artist"
 	musicResponse.Artist = spotifyReponse.Name
+	musicResponse.Image = spotifyReponse.Images[0].URL
 
 	return musicResponse, nil
 }
@@ -142,6 +167,7 @@ func (linkHandler LinkHandler) GetAlbum(id string) (music.Information, error) {
 	musicResponse.MediaType = "album"
 	musicResponse.Artist = spotifyReponse.Artists[0].Name
 	musicResponse.Album = spotifyReponse.Name
+	musicResponse.Image = spotifyReponse.Images[0].URL
 
 	return musicResponse, nil
 }
@@ -210,13 +236,22 @@ func (linkHandler LinkHandler) getSearchTerm(response music.Information) string 
 	}
 }
 
-func (linkHandler LinkHandler) getLink(response music.Information, searchResponse SearchResponse) string {
+func (linkHandler LinkHandler) getLink(response music.Information, searchResponse SearchResponse) (string, error) {
 	switch response.MediaType {
 	case "artist":
-		return searchResponse.Artists.Items[0].ExternalUrls.Spotify
+		if len(searchResponse.Artists.Items) <= 0 {
+			return "", errors.New("No result for artists found")
+		}
+		return searchResponse.Artists.Items[0].ExternalUrls.Spotify, nil
 	case "album":
-		return searchResponse.Albums.Items[0].ExternalUrls.Spotify
+		if len(searchResponse.Albums.Items) <= 0 {
+			return "", errors.New("No result for album found")
+		}
+		return searchResponse.Albums.Items[0].ExternalUrls.Spotify, nil
 	default:
-		return searchResponse.Tracks.Items[0].ExternalUrls.Spotify
+		if len(searchResponse.Tracks.Items) <= 0 {
+			return "", errors.New("No result for tracks found")
+		}
+		return searchResponse.Tracks.Items[0].ExternalUrls.Spotify, nil
 	}
 }

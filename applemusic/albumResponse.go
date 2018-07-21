@@ -6,6 +6,9 @@ type AlbumResponse struct {
 		Attributes struct {
 			ArtistName string `json:"artistName"`
 			Name       string `json:"name"`
+			Artwork    struct {
+				URL string `json:"url"`
+			} `json:"artwork"`
 		} `json:"attributes"`
 	} `json:"data"`
 }
